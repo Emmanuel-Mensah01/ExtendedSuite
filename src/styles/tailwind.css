@@ -1,0 +1,313 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #F5F5F0;
+  --foreground: #1F2937;
+  --primary: #1F2937;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F5F5F0;
+  --secondary-foreground: #1F2937;
+  --accent: #C9A227;
+  --accent-foreground: #1F2937;
+  --muted: #E8E4DC;
+  --muted-foreground: #6B7280;
+  --card: #FFFFFF;
+  --card-foreground: #1F2937;
+  --border: #E5E0D5;
+  --input: #F0EDE6;
+  --ring: #C9A227;
+  --radius: 0.75rem;
+  --font-sans: var(--font-dm-sans), sans-serif;
+  --font-display: var(--font-fraunces), serif;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    border-color: var(--border);
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  h1, h2, h3, h4, h5, h6, p {
+    margin: 0;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  .text-hero {
+    font-size: clamp(2.5rem, 6vw, 5.5rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+  }
+
+  .text-section-title {
+    font-size: clamp(1.75rem, 3.5vw, 3rem);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+  }
+
+  .glass-dark {
+    background: rgba(15, 20, 30, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .glass-light {
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+  }
+
+  .gold-gradient {
+    background: linear-gradient(135deg, #C9A227 0%, #E8C547 50%, #A07B1E 100%);
+  }
+
+  .gold-gradient-text {
+    background: linear-gradient(135deg, #C9A227 0%, #E8C547 60%, #C9A227 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Strengthened for legibility: raised opacity + added a top-edge band so
+     text sitting directly under the fixed header always has contrast. */
+  .hero-scrim {
+    background: linear-gradient(
+      to right,
+      rgba(10, 14, 22, 0.94) 0%,
+      rgba(10, 14, 22, 0.78) 50%,
+      rgba(10, 14, 22, 0.4) 100%
+    );
+  }
+
+  .hero-scrim::before {
+    content: '';
+  }
+
+  .hero-scrim-mobile {
+    background: linear-gradient(
+      to bottom,
+      rgba(10, 14, 22, 0.55) 0%,
+      rgba(10, 14, 22, 0.85) 50%,
+      rgba(10, 14, 22, 0.97) 100%
+    );
+  }
+
+  /* New: sits behind the fixed header at the very top of any hero,
+     so nav text never washes out regardless of the underlying photo. */
+  .hero-top-scrim {
+    background: linear-gradient(
+      to bottom,
+      rgba(10, 14, 22, 0.85) 0%,
+      rgba(10, 14, 22, 0) 100%
+    );
+    height: 180px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .card-hover {
+    transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                box-shadow 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                border-color 0.35s ease;
+  }
+  .card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 60px rgba(201, 162, 39, 0.12);
+    border-color: rgba(201, 162, 39, 0.3);
+  }
+
+  .amenity-icon-wrap {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(201,162,39,0.15) 0%, rgba(201,162,39,0.05) 100%);
+    border: 1px solid rgba(201,162,39,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.3s ease, border-color 0.3s ease;
+  }
+
+  .section-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .section-label::before {
+    content: '';
+    display: block;
+    width: 24px;
+    height: 2px;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .blob-gold {
+    background: radial-gradient(ellipse, rgba(201,162,39,0.18) 0%, transparent 70%);
+    filter: blur(60px);
+    pointer-events: none;
+  }
+
+  .pricing-card-featured {
+    background: linear-gradient(145deg, #1F2937 0%, #111827 100%);
+    border: 1px solid rgba(201,162,39,0.4);
+    box-shadow: 0 0 40px rgba(201,162,39,0.1);
+  }
+
+  /* Strengthened so overlay text on apartment/gallery photo cards
+     stays legible against bright interior shots. */
+  .img-overlay-scrim {
+    background: linear-gradient(to top, rgba(10,14,22,0.92) 0%, rgba(10,14,22,0.45) 55%, transparent 100%);
+  }
+
+  /* Floating action elements (WhatsApp button, sticky CTA) get their
+     own stacking layer above content, with defined safe zones so they
+     never overlap card content or price labels. */
+  .whatsapp-float {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.25rem;
+    z-index: 40;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #25D366;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 20px rgba(37, 211, 102, 0.4);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+    cursor: pointer;
+  }
+  .whatsapp-float:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 28px rgba(37, 211, 102, 0.55);
+  }
+
+  .sticky-book-btn {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 30;
+    max-width: calc(100vw - 6rem);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(28px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeInLeft {
+    from { opacity: 0; transform: translateX(-24px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.94); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes shimmer {
+    0% { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+  }
+  @keyframes kenBurns {
+    0% { transform: scale(1.0); }
+    100% { transform: scale(1.08); }
+  }
+  @keyframes pingPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.4); }
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUp 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+  .animate-fade-in-left {
+    animation: fadeInLeft 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+  .animate-scale-in {
+    animation: scaleIn 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+  .animate-ken-burns {
+    animation: kenBurns 12s ease-in-out infinite alternate;
+  }
+  .animate-ping-pulse {
+    animation: pingPulse 2s ease-in-out infinite;
+  }
+
+  .stagger-1 { animation-delay: 0.1s; }
+  .stagger-2 { animation-delay: 0.2s; }
+  .stagger-3 { animation-delay: 0.3s; }
+  .stagger-4 { animation-delay: 0.4s; }
+  .stagger-5 { animation-delay: 0.5s; }
+
+  .scroll-reveal {
+    opacity: 1;
+  }
+
+  .tab-pill {
+    padding: 0.5rem 1.25rem;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    border: 1px solid transparent;
+  }
+  .tab-pill-active {
+    background: var(--accent);
+    color: var(--accent-foreground);
+    border-color: var(--accent);
+  }
+  .tab-pill-inactive {
+    background: transparent;
+    color: var(--muted-foreground);
+    border-color: var(--border);
+  }
+  .tab-pill-inactive:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  .accordion-content.open {
+    max-height: 400px;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    opacity: 0.5;
+    cursor: pointer;
+  }
+}
