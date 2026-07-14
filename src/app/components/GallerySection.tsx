@@ -21,7 +21,7 @@ const galleryItems = [
 { cat: 'Living Room', src: "/assets/images/HALL4.PNG", alt: 'Second living room angle showing dining area with wooden table and pendant lights over it' },
 { cat: 'Bedroom', src: "/assets/images/Bedroom3.PNG", alt: 'Second bedroom with twin beds, neutral bedding, and curtains allowing soft morning light' },
 { cat: 'Staircase', src: "/assets/images/STAIRS.PNG", alt: 'Bright kitchen with bar seating, pendant lights, and open shelving displaying neatly arranged kitchenware' },
-{ cat: 'Bedroom', src:"/assets/images/BEDROOm4.PNG", alt: 'Elegantly furnished bedroom at Extended Stay Suite Ghana with comfortable bed and quality line' },
+{ cat: 'Bedroom', src:"/assets/images/BEDROOM4.PNG", alt: 'Elegantly furnished bedroom at Extended Stay Suite Ghana with comfortable bed and quality line' },
 { cat: 'Bathroom', src: "/assets/images/WASH1.PNG", alt: 'Modern clean bathroom at Extended Stay Suite Ghana with quality fixtures and fittings' },
 { cat: 'Exterior', src: "/assets/images/EX2.PNG", alt: 'Well-lit apartment building exterior at night with security lights and palm trees in foreground' }];
 
