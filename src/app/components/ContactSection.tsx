@@ -1,17 +1,9 @@
 'use client';
-import React, { useState } from 'react';
+import React from 'react';
+import { useForm, ValidationError } from '@formspree/react';
 
 export default function ContactSection() {
-  const [form, setForm] = useState({ name: '', email: '', phone: '', message: '' });
-  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setStatus('sending');
-    // Mock submit — in production, connect to email service
-    await new Promise((r) => setTimeout(r, 1200));
-    setStatus('sent');
-  };
+  const [state, handleSubmit] = useForm('xdaqklvl');
 
   return (
     <section id="contact" className="scroll-mt-24 py-20 lg:py-28 px-4 sm:px-6 lg:px-8 bg-primary relative overflow-hidden">
@@ -40,11 +32,7 @@ export default function ContactSection() {
                 { icon: 'location', label: 'Address', value: 'Okyeame Anum St, GB-047-4376, Tema Community 6', href: '#' },
                 { icon: 'clock', label: 'Check-in / Check-out', value: 'Check-in: 2:00 PM · Check-out: 11:00 AM', href: '#' },
               ].map((item) => (
-                <a
-                  key={item.label}
-                  href={item.href}
-                  className="flex items-start gap-4 group"
-                >
+                <a key={item.label} href={item.href} className="flex items-start gap-4 group">
                   <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0 group-hover:border-accent/40 transition-colors">
                     {item.icon === 'phone' && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9A227" strokeWidth="1.75"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>}
                     {item.icon === 'email' && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9A227" strokeWidth="1.75"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>}
@@ -60,8 +48,8 @@ export default function ContactSection() {
             </div>
 
             {/* WhatsApp CTA */}
-            <a
-              href="https://wa.me/233248537939?text=Hello%2C%20I%27d%20like%20to%20enquire%20about%20booking%20at%20Extended%20Stay%20Suite"
+            
+             <a href="https://wa.me/233248537939?text=Hello%2C%20I%27d%20like%20to%20enquire%20about%20booking%20at%20Extended%20Stay%20Suite"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-3 mt-8 px-6 py-3.5 bg-[#25D366] text-white font-semibold text-sm rounded-xl hover:bg-[#1ebe5d] transition-colors"
@@ -74,7 +62,7 @@ export default function ContactSection() {
           {/* Right: Form */}
           <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 lg:p-8">
             <h3 className="font-display text-xl font-medium text-white mb-6">Send a Message</h3>
-            {status === 'sent' ? (
+            {state.succeeded ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <div className="w-16 h-16 rounded-full bg-accent/20 border border-accent/30 flex items-center justify-center mb-4">
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C9A227" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
@@ -86,55 +74,59 @@ export default function ContactSection() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-semibold text-white/40 uppercase tracking-wider block mb-1.5">Full Name</label>
+                    <label htmlFor="name" className="text-xs font-semibold text-white/40 uppercase tracking-wider block mb-1.5">Full Name</label>
                     <input
                       type="text"
-                      value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      id="name"
+                      name="name"
                       placeholder="Your full name"
                       required
                       className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/30 transition-all"
                     />
+                    <ValidationError prefix="Name" field="name" errors={state.errors} className="text-red-400 text-xs mt-1" />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-white/40 uppercase tracking-wider block mb-1.5">Phone</label>
+                    <label htmlFor="phone" className="text-xs font-semibold text-white/40 uppercase tracking-wider block mb-1.5">Phone</label>
                     <input
                       type="tel"
-                      value={form.phone}
-                      onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                      id="phone"
+                      name="phone"
                       placeholder="+233 or international"
                       className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/30 transition-all"
                     />
+                    <ValidationError prefix="Phone" field="phone" errors={state.errors} className="text-red-400 text-xs mt-1" />
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-white/40 uppercase tracking-wider block mb-1.5">Email</label>
+                  <label htmlFor="email" className="text-xs font-semibold text-white/40 uppercase tracking-wider block mb-1.5">Email</label>
                   <input
                     type="email"
-                    value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    id="email"
+                    name="email"
                     placeholder="your@email.com"
                     required
                     className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/30 transition-all"
                   />
+                  <ValidationError prefix="Email" field="email" errors={state.errors} className="text-red-400 text-xs mt-1" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-white/40 uppercase tracking-wider block mb-1.5">Message</label>
+                  <label htmlFor="message" className="text-xs font-semibold text-white/40 uppercase tracking-wider block mb-1.5">Message</label>
                   <textarea
-                    value={form.message}
-                    onChange={(e) => setForm({ ...form, message: e.target.value })}
+                    id="message"
+                    name="message"
                     placeholder="Tell us about your stay requirements..."
                     rows={4}
                     required
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/30 transition-all resize-none"
                   />
+                  <ValidationError prefix="Message" field="message" errors={state.errors} className="text-red-400 text-xs mt-1" />
                 </div>
                 <button
                   type="submit"
-                  disabled={status === 'sending'}
+                  disabled={state.submitting}
                   className="w-full py-3.5 gold-gradient text-accent-foreground font-semibold text-sm rounded-xl hover:opacity-90 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
                 >
-                  {status === 'sending' ? (
+                  {state.submitting ? (
                     <>
                       <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
                       Sending...
