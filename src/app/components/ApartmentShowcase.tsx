@@ -17,7 +17,7 @@ const apartment = {
   period: '/ night',
   features: ['2 Queen Beds', 'Expansive Living Room', 'Full Kitchen', '2 Bathrooms', 'Dining Area', 'Smart TV + A/C'],
   cover: {
-    src: "/assets/images/Bedroom3.PNG",
+    src: "/assets/images/BEDROOM4.PNG",
     alt: 'Elegantly furnished bedroom at Extended Stay Suite Ghana with comfortable bed and quality linens'
   },
   secondary: [
