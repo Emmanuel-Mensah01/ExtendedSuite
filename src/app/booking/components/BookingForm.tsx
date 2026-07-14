@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 interface FormData {
-  apartmentType: string;
   checkIn: string;
   checkInTime: string;
   checkOut: string;
@@ -32,7 +31,6 @@ export default function BookingForm() {
   const [orderNumber, setOrderNumber] = useState<string>('');
 
   const [form, setForm] = useState<FormData>({
-    apartmentType: searchParams.get('type') || '1bed',
     checkIn: searchParams.get('checkIn') || '',
     checkInTime: '14:00',
     checkOut: searchParams.get('checkOut') || '',
@@ -59,7 +57,7 @@ export default function BookingForm() {
     }
   }, [form.checkIn, form.checkOut]);
 
-  const baseRate = form.apartmentType === '2bed' ? 700 : 465;
+  const baseRate = 700;
   const totalBase = baseRate * nights;
 
   const toggleAddOn = (id: string) => {
@@ -84,7 +82,7 @@ export default function BookingForm() {
     const orderNumber = `ESS-${datePart}-${randomPart}`;
 
     // Build WhatsApp message with all booking details
-    const aptLabel = form.apartmentType === '2bed' ? 'Two Bedroom' : 'One Bedroom';
+    const aptLabel = 'Two Bedroom Apartment';
     const addOnLabels = form.addOns.map((id) => addOnOptions.find((a) => a.id === id)?.label).filter(Boolean).join(', ') || 'None';
 
     // Admin notification message
@@ -169,7 +167,7 @@ export default function BookingForm() {
         )}
         <p className="text-muted-foreground text-sm leading-relaxed max-w-sm mx-auto mb-6">
           Thank you, <strong>{form.firstName}</strong>. Your reservation request for the{' '}
-          <strong>{form.apartmentType === '2bed' ? 'Two Bedroom' : 'One Bedroom'}</strong> has been received.
+          <strong>Two Bedroom Apartment</strong> has been received.
           A WhatsApp confirmation has been sent to <strong>{form.phone}</strong>. We&apos;ll confirm within the hour.
         </p>
         <div className="bg-muted rounded-xl p-5 text-left mb-6 space-y-2">
@@ -179,7 +177,7 @@ export default function BookingForm() {
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Apartment</span>
-            <span className="font-semibold text-foreground">{form.apartmentType === '2bed' ? 'Two Bedroom' : 'One Bedroom'}</span>
+            <span className="font-semibold text-foreground">Two Bedroom Apartment</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Check-in</span>
@@ -238,35 +236,12 @@ export default function BookingForm() {
           <div className="bg-card border border-border rounded-2xl p-6">
             <h2 className="font-display text-xl font-medium text-foreground mb-5">Stay Details</h2>
 
-            {/* Apartment Type */}
-            <div className="mb-5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-3">Apartment Type</label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {[
-                  { id: '1bed', title: 'One Bedroom', sub: '1–2 guests · GHS 465/night', icon: '🛏️' },
-                  { id: '2bed', title: 'Two Bedroom', sub: 'Up to 4 guests · GHS 700/night', icon: '🏠' },
-                ].map((apt) => (
-                  <button
-                    key={apt.id}
-                    type="button"
-                    onClick={() => setForm({ ...form, apartmentType: apt.id })}
-                    className={`flex items-center gap-4 p-4 rounded-xl border-2 text-left transition-all ${
-                      form.apartmentType === apt.id
-                        ? 'border-accent bg-accent/5' :'border-border bg-background hover:border-accent/40'
-                    }`}
-                  >
-                    <span className="text-2xl">{apt.icon}</span>
-                    <div>
-                      <p className={`font-semibold text-sm ${form.apartmentType === apt.id ? 'text-accent' : 'text-foreground'}`}>{apt.title}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{apt.sub}</p>
-                    </div>
-                    {form.apartmentType === apt.id && (
-                      <div className="ml-auto w-5 h-5 rounded-full bg-accent flex items-center justify-center flex-shrink-0">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
-                      </div>
-                    )}
-                  </button>
-                ))}
+            {/* Apartment summary */}
+            <div className="flex items-center gap-4 p-4 rounded-xl border-2 border-accent bg-accent/5 mb-5">
+              <span className="text-2xl">🏠</span>
+              <div>
+                <p className="font-semibold text-sm text-accent">Two Bedroom Apartment</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Up to 4 guests · GHS 700/night</p>
               </div>
             </div>
 
@@ -524,7 +499,7 @@ export default function BookingForm() {
             <h3 className="font-semibold text-foreground text-sm mb-3">Booking Summary</h3>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Apartment</span>
-              <span className="font-medium text-foreground">{form.apartmentType === '2bed' ? 'Two Bedroom' : 'One Bedroom'}</span>
+              <span className="font-medium text-foreground">Two Bedroom Apartment</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Dates</span>

@@ -9,7 +9,7 @@ const testimonials = [
   avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_1e8288816-1772198562258.png",
   text: 'Stayed for 3 weeks on a corporate project. The apartment felt like a boutique hotel — spotless, great Wi-Fi, and the backup power meant I never missed a deadline. Will return.',
   rating: 5,
-  stay: '3-week stay · One Bedroom'
+  stay: '3-week stay · Two Bedroom Apartment'
 },
 {
   name: 'Abena Mensah',
@@ -17,7 +17,7 @@ const testimonials = [
   avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_15c9994e3-1777820929540.png",
   text: 'Perfect base for visiting family in Tema. Much better value than a hotel, and the kitchenette meant I could cook local food. The security gave me real peace of mind.',
   rating: 5,
-  stay: '10-day stay · Two Bedroom'
+  stay: '10-day stay · Two Bedroom Apartment'
 },
 {
   name: 'James Osei-Bonsu',
@@ -25,7 +25,7 @@ const testimonials = [
   avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_18591d91f-1767978242303.png",
   text: 'Monthly rate is excellent for the quality. Full A/C, Smart TV, and very close to the motorway for my commute. The team responds quickly on WhatsApp.',
   rating: 5,
-  stay: '2-month stay · One Bedroom'
+  stay: '2-month stay · Two Bedroom Apartment'
 },
 {
   name: 'Efua Darko',
@@ -33,7 +33,7 @@ const testimonials = [
   avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_1dac8b24b-1765819828759.png",
   text: 'Needed accommodation close to the hospital for a 6-week rotation. Extended Stay Suite was ideal — clean, quiet, and the laundry service was a lifesaver.',
   rating: 5,
-  stay: '6-week stay · One Bedroom'
+  stay: '6-week stay · Two Bedroom Apartment'
 }];
 
 

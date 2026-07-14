@@ -99,7 +99,7 @@ export default function HeroSection() {
               <span className="text-white/70 text-xs sm:text-sm ml-1">5.0 Rating</span>
             </div>
             <div className="h-4 w-px bg-white/20 hidden sm:block" />
-            <span className="text-white/70 text-xs sm:text-sm hidden sm:block">2 Units Available</span>
+            <span className="text-white/70 text-xs sm:text-sm hidden sm:block">Fully Furnished 2-Bedroom Apartment</span>
           </div>
         </div>
       </div>

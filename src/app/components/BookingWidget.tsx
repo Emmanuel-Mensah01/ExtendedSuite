@@ -8,7 +8,7 @@ export default function BookingWidget() {
     checkIn: '',
     checkOut: '',
     guests: '2',
-    type: '1bed',
+    type: '2bed',
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -26,7 +26,7 @@ export default function BookingWidget() {
             <h2 className="font-display text-primary font-semibold text-lg">Check Availability & Book</h2>
           </div>
           <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {/* Check In */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Check-in</label>
@@ -53,19 +53,6 @@ export default function BookingWidget() {
                   className="w-full h-12 bg-input border border-border rounded-xl px-4 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all"
                   required
                 />
-              </div>
-
-              {/* Apartment Type */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Apartment</label>
-                <select
-                  value={form.type}
-                  onChange={(e) => setForm({ ...form, type: e.target.value })}
-                  className="w-full h-12 bg-input border border-border rounded-xl px-4 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all appearance-none cursor-pointer"
-                >
-                  <option value="1bed">1 Bedroom (1–2 guests)</option>
-                  <option value="2bed">2 Bedroom (up to 4 guests)</option>
-                </select>
               </div>
 
               {/* Guests */}
