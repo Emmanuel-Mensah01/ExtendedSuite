@@ -58,27 +58,6 @@ function buildPayPalUrl(orderNumber: string, amountGHS: number) {
   });
   return `https://www.paypal.com/cgi-bin/webscr?${params.toString()}`;
 }
-
-// Best-effort international formatter for WhatsApp deep links (wa.me needs
-// digits only, no leading +). Handles:
-//  - "+233 24 xxx xxxx"      -> already has a country code, strip the +
-//  - "0244xxxxxx" (Ghana local) -> assume Ghana, prefix 233
-//  - "233244xxxxxx"          -> already fully qualified, leave as-is
-// This is a heuristic, not full E.164 validation — for guests dialing in
-// from outside Ghana without a leading 0 or +, ask them to include their
-// country code (the placeholder text already says "international format").
-function formatPhoneForWhatsApp(raw: string) {
-  let cleaned = raw.replace(/[\s\-().]/g, '');
-  if (cleaned.startsWith('+')) {
-    cleaned = cleaned.slice(1);
-  } else if (cleaned.startsWith('00')) {
-    cleaned = cleaned.slice(2);
-  } else if (cleaned.startsWith('0')) {
-    // Local-format number with no country code — assume Ghana.
-    cleaned = `233${cleaned.slice(1)}`;
-  }
-  return cleaned;
-}
 // ──────────────────────────────────────────────────────────────────────
 
 export default function BookingForm() {
@@ -168,7 +147,11 @@ export default function BookingForm() {
       ? '\n⚠️ *Note:* Some selected add-ons (laundry / airport pickup) are priced on request and are NOT included in the total below.'
       : '';
 
-    // Admin notification message
+    // Admin notification message. This is now the ONLY WhatsApp message we
+    // open — there is no guest-facing message anymore, since the guest is
+    // already the one talking to the hotel on WhatsApp; the admin follows
+    // up directly with them once the booking is reviewed. The PayPal link
+    // is included here so the admin can forward it once they confirm.
     const adminMessage = encodeURIComponent(
       `🏨 *NEW BOOKING REQUEST — Extended Stay Suite*\n` +
       `🔖 *Order No:* ${orderNumber}\n\n` +
@@ -185,42 +168,15 @@ export default function BookingForm() {
       `➕ *Add-ons:* ${addOnLabels}\n` +
       `📝 *Special Requests:* ${form.specialRequests || 'None'}\n\n` +
       `💰 *Estimated Total:* GHS ${totalBase.toLocaleString()}${quoteNote}\n\n` +
+      `💳 *Payment link (share with guest once confirmed):* ${paypalLink}\n\n` +
       `_Please confirm availability and respond to the guest._`
     );
 
-    // Guest confirmation message
-    const guestMessage = encodeURIComponent(
-      `✅ *Booking Request Received — Extended Stay Suite*\n` +
-      `🔖 *Your Order No:* ${orderNumber}\n\n` +
-      `Dear ${form.firstName} ${form.lastName},\n\n` +
-      `Thank you for choosing Extended Stay Suite, Tema, Ghana! 🏨\n\n` +
-      `Here is a summary of your booking request:\n\n` +
-      `🛏️ *Apartment:* ${aptLabel}\n` +
-      `👥 *Guests:* ${form.guests}\n` +
-      `📅 *Check-in:* ${form.checkIn} at ${form.checkInTime}\n` +
-      `📅 *Check-out:* ${form.checkOut} at ${form.checkOutTime}\n` +
-      `🌙 *Duration:* ${nights} night${nights !== 1 ? 's' : ''}\n` +
-      `➕ *Add-ons:* ${addOnLabels}\n` +
-      `💰 *Estimated Total:* GHS ${totalBase.toLocaleString()}${quoteNote}\n\n` +
-      `Please quote your order number *${orderNumber}* in all communications with us.\n\n` +
-      `💳 To secure your reservation, please complete your payment here:\n${paypalLink}\n\n` +
-      `After payment, kindly reply to this chat with your payment confirmation.\n\n` +
-      `Your reservation will be confirmed once payment and availability are verified.\n\n` +
-      `📍 *Location:* Tema Community 6, Ghana\n` +
-      `📞 *Contact:* +233 542 758 210\n\n` +
-      `We look forward to hosting you! 🌟`
-    );
-
     const waAdminUrl = `https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${adminMessage}`;
-    const waGuestUrl = `https://wa.me/${formatPhoneForWhatsApp(form.phone)}?text=${guestMessage}`;
 
-    // Open both windows synchronously, back-to-back, inside the same click
-    // handler. Browsers treat window.open() calls made after an `await` or
-    // setTimeout as no longer "user-triggered" and are much more likely to
-    // block them — so we fire both immediately, before any async work,
-    // rather than staggering the second one with a delay.
+    // Only one window to open now. Still fired synchronously inside the
+    // click handler (no await before it) so popup blockers don't interfere.
     window.open(waAdminUrl, '_blank');
-    window.open(waGuestUrl, '_blank');
 
     await new Promise((r) => setTimeout(r, 400));
     setOrderNumber(orderNumber);
@@ -242,12 +198,10 @@ export default function BookingForm() {
           </div>
         )}
         <p className="text-muted-foreground text-sm leading-relaxed max-w-sm mx-auto mb-6">
-          Thank you, <strong>{form.firstName}</strong>. Your details for the{' '}
-          <strong>Two Bedroom Apartment</strong> are ready to send.
-          A pre-filled WhatsApp message should have opened for <strong>{form.phone}</strong> — please
-          review it and press <strong>Send</strong> to submit your booking request. If it didn't open
-          automatically (some browsers block pop-ups), use the button below. Your reservation will only
-          be confirmed after we receive that message and verify payment and availability.
+          Thank you, <strong>{form.firstName}</strong>. Your booking request for the{' '}
+          <strong>Two Bedroom Apartment</strong> has been sent to our team via WhatsApp.
+          We'll review availability and reach out to you directly at <strong>{form.phone}</strong>{' '}
+          to confirm your reservation and arrange payment.
         </p>
         <div className="bg-muted rounded-xl p-5 text-left mb-6 space-y-2">
           <div className="flex justify-between text-sm border-b border-border pb-2 mb-1">
@@ -292,17 +246,8 @@ export default function BookingForm() {
           )}
         </div>
 
-        {/* Payment options */}
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <a
-            href={`https://wa.me/${formatPhoneForWhatsApp(form.phone)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#25D366] text-white font-semibold text-sm rounded-xl hover:bg-[#1ebe5d] transition-colors"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-            Open my WhatsApp confirmation
-          </a>
+        {/* Payment option */}
+        <div className="flex justify-center">
           <a
             href={buildPayPalUrl(orderNumber, totalBase)}
             target="_blank"
@@ -316,8 +261,8 @@ export default function BookingForm() {
           </a>
         </div>
         <p className="text-xs text-muted-foreground mt-3">
-          Payments are processed securely in USD using the current exchange rate — final amount can be confirmed via
-          WhatsApp before you pay.
+          You don't need to pay right away — we'll confirm your booking on WhatsApp first.
+          Payments are processed securely in USD using the current exchange rate.
         </p>
       </div>
     );
@@ -512,7 +457,7 @@ export default function BookingForm() {
                 required
                 className="w-full h-12 bg-input border border-border rounded-xl px-4 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all"
               />
-              <p className="text-xs text-muted-foreground mt-1.5">📱 We'll open a pre-filled WhatsApp message to this number for you to send. If dialing from outside Ghana, please include your country code (e.g. +1, +44).</p>
+              <p className="text-xs text-muted-foreground mt-1.5">📱 We'll use this number to reach out to you and confirm your booking.</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -653,7 +598,8 @@ export default function BookingForm() {
           <div className="flex items-start gap-3 p-3 bg-[#25D366]/10 border border-[#25D366]/20 rounded-xl">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="#25D366" className="flex-shrink-0 mt-0.5"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
             <p className="text-xs text-foreground/80">
-              Clicking below will open a pre-filled WhatsApp message with your full booking details — including the payment link — addressed to <strong>{form.phone}</strong>. You'll need to press Send in WhatsApp to actually submit your request.
+              Clicking below will send your full booking details straight to our team on WhatsApp.
+              We'll get back to you at <strong>{form.phone}</strong> to confirm availability and arrange payment.
             </p>
           </div>
 
