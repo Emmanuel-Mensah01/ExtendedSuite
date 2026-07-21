@@ -18,11 +18,20 @@ interface FormData {
   specialRequests: string;
 }
 
+// Add-ons that have a fixed, calculable per-night or per-person rate get a
+// `perGuestPerNight` or `flatPerNight` price so they can be folded into the
+// estimated total. Add-ons priced "on request" (e.g. airport pickup) are
+// left out of the calculation and clearly marked as such in the UI/summary.
 const addOnOptions = [
-  { id: 'laundry', label: 'Laundry Service', price: 'GHS 80/load' },
-  { id: 'breakfast', label: 'Daily Breakfast', price: 'GHS 50/person' },
-  { id: 'airport', label: 'Airport Pickup', price: 'Contact for quote' },
+  { id: 'laundry', label: 'Laundry Service', price: 'GHS 80/load', calculable: false },
+  { id: 'breakfast', label: 'Daily Breakfast', price: 'GHS 50/person/day', calculable: true, perGuestPerNight: 50 },
+  { id: 'airport', label: 'Airport Pickup', price: 'Contact for quote', calculable: false },
 ];
+
+// ── Pricing config ──────────────────────────────────────────────────────
+const BASE_RATE = 700; // GHS per night, up to 2 guests
+const INCLUDED_GUESTS = 2;
+const EXTRA_GUEST_RATE = 100; // GHS per night, per guest beyond INCLUDED_GUESTS
 
 // ── PayPal payment config ─────────────────────────────────────────────
 // Yawsei's PayPal is a US-registered business account, so it can receive.
@@ -48,6 +57,27 @@ function buildPayPalUrl(orderNumber: string, amountGHS: number) {
     custom: orderNumber, // shows up in the PayPal transaction details
   });
   return `https://www.paypal.com/cgi-bin/webscr?${params.toString()}`;
+}
+
+// Best-effort international formatter for WhatsApp deep links (wa.me needs
+// digits only, no leading +). Handles:
+//  - "+233 24 xxx xxxx"      -> already has a country code, strip the +
+//  - "0244xxxxxx" (Ghana local) -> assume Ghana, prefix 233
+//  - "233244xxxxxx"          -> already fully qualified, leave as-is
+// This is a heuristic, not full E.164 validation — for guests dialing in
+// from outside Ghana without a leading 0 or +, ask them to include their
+// country code (the placeholder text already says "international format").
+function formatPhoneForWhatsApp(raw: string) {
+  let cleaned = raw.replace(/[\s\-().]/g, '');
+  if (cleaned.startsWith('+')) {
+    cleaned = cleaned.slice(1);
+  } else if (cleaned.startsWith('00')) {
+    cleaned = cleaned.slice(2);
+  } else if (cleaned.startsWith('0')) {
+    // Local-format number with no country code — assume Ghana.
+    cleaned = `233${cleaned.slice(1)}`;
+  }
+  return cleaned;
 }
 // ──────────────────────────────────────────────────────────────────────
 
@@ -84,8 +114,30 @@ export default function BookingForm() {
     }
   }, [form.checkIn, form.checkOut]);
 
-  const baseRate = 700;
-  const totalBase = baseRate * nights;
+  const guestCount = Number(form.guests) || 1;
+  const extraGuests = Math.max(0, guestCount - INCLUDED_GUESTS);
+
+  const roomTotal = BASE_RATE * nights;
+  const extraGuestTotal = extraGuests * EXTRA_GUEST_RATE * nights;
+
+  // Only fold in add-ons that have a known, calculable rate (currently just
+  // breakfast). Anything marked calculable:false (laundry, airport pickup)
+  // is quoted separately and flagged in the summary instead of silently
+  // being left out of the "total".
+  const calculableAddOnTotal = form.addOns.reduce((sum, id) => {
+    const addon = addOnOptions.find((a) => a.id === id);
+    if (addon?.calculable && addon.perGuestPerNight) {
+      return sum + addon.perGuestPerNight * guestCount * nights;
+    }
+    return sum;
+  }, 0);
+
+  const hasQuoteOnlyAddOns = form.addOns.some((id) => {
+    const addon = addOnOptions.find((a) => a.id === id);
+    return addon && !addon.calculable;
+  });
+
+  const totalBase = roomTotal + extraGuestTotal + calculableAddOnTotal;
 
   const toggleAddOn = (id: string) => {
     setForm((prev) => ({
@@ -112,6 +164,9 @@ export default function BookingForm() {
     const aptLabel = 'Two Bedroom Apartment';
     const addOnLabels = form.addOns.map((id) => addOnOptions.find((a) => a.id === id)?.label).filter(Boolean).join(', ') || 'None';
     const paypalLink = buildPayPalUrl(orderNumber, totalBase);
+    const quoteNote = hasQuoteOnlyAddOns
+      ? '\n⚠️ *Note:* Some selected add-ons (laundry / airport pickup) are priced on request and are NOT included in the total below.'
+      : '';
 
     // Admin notification message
     const adminMessage = encodeURIComponent(
@@ -123,13 +178,13 @@ export default function BookingForm() {
       `🌍 *Nationality:* ${form.nationality || 'Not specified'}\n` +
       `🎯 *Purpose:* ${form.purpose || 'Not specified'}\n\n` +
       `🛏️ *Apartment:* ${aptLabel}\n` +
-      `👥 *Guests:* ${form.guests}\n` +
+      `👥 *Guests:* ${form.guests}${extraGuests > 0 ? ` (${extraGuests} extra @ GHS ${EXTRA_GUEST_RATE}/night)` : ''}\n` +
       `📅 *Check-in:* ${form.checkIn} at ${form.checkInTime}\n` +
       `📅 *Check-out:* ${form.checkOut} at ${form.checkOutTime}\n` +
       `🌙 *Nights:* ${nights}\n\n` +
       `➕ *Add-ons:* ${addOnLabels}\n` +
       `📝 *Special Requests:* ${form.specialRequests || 'None'}\n\n` +
-      `💰 *Estimated Total:* GHS ${totalBase.toLocaleString()}\n\n` +
+      `💰 *Estimated Total:* GHS ${totalBase.toLocaleString()}${quoteNote}\n\n` +
       `_Please confirm availability and respond to the guest._`
     );
 
@@ -146,7 +201,7 @@ export default function BookingForm() {
       `📅 *Check-out:* ${form.checkOut} at ${form.checkOutTime}\n` +
       `🌙 *Duration:* ${nights} night${nights !== 1 ? 's' : ''}\n` +
       `➕ *Add-ons:* ${addOnLabels}\n` +
-      `💰 *Estimated Total:* GHS ${totalBase.toLocaleString()}\n\n` +
+      `💰 *Estimated Total:* GHS ${totalBase.toLocaleString()}${quoteNote}\n\n` +
       `Please quote your order number *${orderNumber}* in all communications with us.\n\n` +
       `💳 To secure your reservation, please complete your payment here:\n${paypalLink}\n\n` +
       `After payment, kindly reply to this chat with your payment confirmation.\n\n` +
@@ -156,22 +211,18 @@ export default function BookingForm() {
       `We look forward to hosting you! 🌟`
     );
 
-    // Open WhatsApp for the admin number
     const waAdminUrl = `https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${adminMessage}`;
+    const waGuestUrl = `https://wa.me/${formatPhoneForWhatsApp(form.phone)}?text=${guestMessage}`;
 
-    // Clean guest phone number (remove spaces, dashes, parentheses)
-    const guestPhone = form.phone.replace(/[\s\-\(\)\+]/g, '');
-    const guestPhoneFormatted = guestPhone.startsWith('0') ? `233${guestPhone.slice(1)}` : guestPhone;
-    const waGuestUrl = `https://wa.me/${guestPhoneFormatted}?text=${guestMessage}`;
-
-    // Open admin WhatsApp window
+    // Open both windows synchronously, back-to-back, inside the same click
+    // handler. Browsers treat window.open() calls made after an `await` or
+    // setTimeout as no longer "user-triggered" and are much more likely to
+    // block them — so we fire both immediately, before any async work,
+    // rather than staggering the second one with a delay.
     window.open(waAdminUrl, '_blank');
-    // Open guest confirmation WhatsApp
-    setTimeout(() => {
-      window.open(waGuestUrl, '_blank');
-    }, 800);
+    window.open(waGuestUrl, '_blank');
 
-    await new Promise((r) => setTimeout(r, 1000));
+    await new Promise((r) => setTimeout(r, 400));
     setOrderNumber(orderNumber);
     setStatus('success');
   };
@@ -182,7 +233,7 @@ export default function BookingForm() {
         <div className="w-20 h-20 rounded-full bg-accent/15 border border-accent/30 flex items-center justify-center mx-auto mb-6">
           <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#C9A227" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
-        <h2 className="font-display text-2xl font-medium text-foreground mb-3">Booking Request Received</h2>
+        <h2 className="font-display text-2xl font-medium text-foreground mb-3">Booking Form Completed</h2>
         {orderNumber && (
           <div className="inline-flex items-center gap-2 bg-accent/10 border border-accent/30 rounded-xl px-5 py-2.5 mb-4">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9A227" strokeWidth="2"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
@@ -191,10 +242,12 @@ export default function BookingForm() {
           </div>
         )}
         <p className="text-muted-foreground text-sm leading-relaxed max-w-sm mx-auto mb-6">
-          Thank you, <strong>{form.firstName}</strong>. Your reservation request for the{' '}
-          <strong>Two Bedroom Apartment</strong> has been received.
-          A WhatsApp confirmation has been sent to <strong>{form.phone}</strong>. Your reservation will be confirmed
-          after payment and availability verification.
+          Thank you, <strong>{form.firstName}</strong>. Your details for the{' '}
+          <strong>Two Bedroom Apartment</strong> are ready to send.
+          A pre-filled WhatsApp message should have opened for <strong>{form.phone}</strong> — please
+          review it and press <strong>Send</strong> to submit your booking request. If it didn't open
+          automatically (some browsers block pop-ups), use the button below. Your reservation will only
+          be confirmed after we receive that message and verify payment and availability.
         </p>
         <div className="bg-muted rounded-xl p-5 text-left mb-6 space-y-2">
           <div className="flex justify-between text-sm border-b border-border pb-2 mb-1">
@@ -215,24 +268,40 @@ export default function BookingForm() {
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Guests</span>
-            <span className="font-semibold text-foreground">{form.guests}</span>
+            <span className="font-semibold text-foreground">
+              {form.guests}{extraGuests > 0 ? ` (${extraGuests} extra)` : ''}
+            </span>
           </div>
+          {form.addOns.length > 0 && (
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Add-ons</span>
+              <span className="font-semibold text-foreground text-right">
+                {form.addOns.map((id) => addOnOptions.find((a) => a.id === id)?.label).join(', ')}
+              </span>
+            </div>
+          )}
           <div className="flex justify-between text-sm border-t border-border pt-2 mt-1">
             <span className="text-muted-foreground">Estimated Total</span>
             <span className="font-semibold text-accent">GHS {totalBase.toLocaleString()}</span>
           </div>
+          {hasQuoteOnlyAddOns && (
+            <p className="text-xs text-muted-foreground pt-1">
+              Some add-ons (laundry / airport pickup) are priced on request and aren't included above —
+              we'll confirm those separately.
+            </p>
+          )}
         </div>
 
         {/* Payment options */}
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <a
-            href={`https://wa.me/${ADMIN_WHATSAPP_NUMBER}`}
+            href={`https://wa.me/${formatPhoneForWhatsApp(form.phone)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#25D366] text-white font-semibold text-sm rounded-xl hover:bg-[#1ebe5d] transition-colors"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-            Follow up on WhatsApp
+            Open my WhatsApp confirmation
           </a>
           <a
             href={buildPayPalUrl(orderNumber, totalBase)}
@@ -288,7 +357,7 @@ export default function BookingForm() {
               <span className="text-2xl">🏠</span>
               <div>
                 <p className="font-semibold text-sm text-accent">Two Bedroom Apartment</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Up to 4 guests · GHS 700/night</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Up to 4 guests · GHS 700/night (first 2 guests included)</p>
               </div>
             </div>
 
@@ -372,7 +441,7 @@ export default function BookingForm() {
                 className="w-full h-12 bg-input border border-border rounded-xl px-4 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all appearance-none"
               >
                 {[1, 2, 3, 4].map((n) => (
-                  <option key={n} value={n}>{n} {n === 1 ? 'Guest' : 'Guests'}{n > 2 ? ' (+GHS 100/night per extra guest)' : ''}</option>
+                  <option key={n} value={n}>{n} {n === 1 ? 'Guest' : 'Guests'}{n > INCLUDED_GUESTS ? ` (+GHS ${EXTRA_GUEST_RATE}/night per extra guest)` : ''}</option>
                 ))}
               </select>
             </div>
@@ -443,7 +512,7 @@ export default function BookingForm() {
                 required
                 className="w-full h-12 bg-input border border-border rounded-xl px-4 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all"
               />
-              <p className="text-xs text-muted-foreground mt-1.5">📱 A WhatsApp booking confirmation will be sent to this number</p>
+              <p className="text-xs text-muted-foreground mt-1.5">📱 We'll open a pre-filled WhatsApp message to this number for you to send. If dialing from outside Ghana, please include your country code (e.g. +1, +44).</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -553,21 +622,38 @@ export default function BookingForm() {
               <span className="font-medium text-foreground">{form.checkIn} {form.checkInTime} → {form.checkOut} {form.checkOutTime}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">{nights} nights × GHS {baseRate}</span>
-              <span className="font-medium text-foreground">GHS {totalBase.toLocaleString()}</span>
+              <span className="text-muted-foreground">{nights} nights × GHS {BASE_RATE}</span>
+              <span className="font-medium text-foreground">GHS {roomTotal.toLocaleString()}</span>
             </div>
+            {extraGuests > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">{extraGuests} extra guest{extraGuests !== 1 ? 's' : ''} × GHS {EXTRA_GUEST_RATE} × {nights} night{nights !== 1 ? 's' : ''}</span>
+                <span className="font-medium text-foreground">GHS {extraGuestTotal.toLocaleString()}</span>
+              </div>
+            )}
+            {calculableAddOnTotal > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Add-ons (calculated)</span>
+                <span className="font-medium text-foreground">GHS {calculableAddOnTotal.toLocaleString()}</span>
+              </div>
+            )}
             <div className="border-t border-accent/20 pt-2 flex justify-between text-sm font-semibold">
               <span className="text-foreground">Estimated Total</span>
               <span className="text-accent">GHS {totalBase.toLocaleString()}</span>
             </div>
             <p className="text-xs text-muted-foreground">+ Security deposit (refundable) + cleaning fee. Final invoice sent on confirmation.</p>
+            {hasQuoteOnlyAddOns && (
+              <p className="text-xs text-amber-600">
+                Laundry and/or airport pickup selected — these are priced on request and not included above.
+              </p>
+            )}
           </div>
 
           {/* WhatsApp confirmation notice */}
           <div className="flex items-start gap-3 p-3 bg-[#25D366]/10 border border-[#25D366]/20 rounded-xl">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="#25D366" className="flex-shrink-0 mt-0.5"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
             <p className="text-xs text-foreground/80">
-              A WhatsApp confirmation with your full booking details — including the payment link — will be sent to <strong>{form.phone}</strong> upon submission.
+              Clicking below will open a pre-filled WhatsApp message with your full booking details — including the payment link — addressed to <strong>{form.phone}</strong>. You'll need to press Send in WhatsApp to actually submit your request.
             </p>
           </div>
 
@@ -593,7 +679,7 @@ export default function BookingForm() {
               ) : (
                 <>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                  Confirm Reservation Request
+                  Send Booking via WhatsApp
                 </>
               )}
             </button>
