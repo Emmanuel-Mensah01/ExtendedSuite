@@ -25,8 +25,7 @@ export default function ContactSection() {
 
             <div className="space-y-5">
               {[
-                { icon: 'phone', label: 'Primary Phone', value: '+233 542 758 210', href: 'tel:+233248537939' },
-                { icon: 'phone', label: 'Secondary Phone', value: '+233 248 537 939', href: 'tel:+233542758210' },
+                { icon: 'phone', label: 'Primary Phone', value: '+233 248 537 939', href: 'tel:+233248537939' },
                 { icon: 'phone', label: 'International Line', value: '+1 201 201 2577 915', href: 'tel:+12012012577915' },
                 { icon: 'email', label: 'Email', value: 'extendedstaysuitegh@gmail.com', href: 'mailto:extendedstaysuitegh@gmail.com' },
                 { icon: 'location', label: 'Address', value: 'Okyeame Anum St, GB-047-4376, Tema Community 6', href: '#' },
